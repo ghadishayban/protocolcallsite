@@ -1,0 +1,80 @@
+From 19313ff2fdff628dd945a79104d75a18780224c3 Mon Sep 17 00:00:00 2001
+From: Ghadi Shayban <gshayban@gmail.com>
+Date: Fri, 24 May 2013 22:01:33 -0400
+Subject: [PATCH] Remove vestigial protocol call site bytecode/fields
+
+---
+ src/jvm/clojure/lang/Compiler.java | 36 ++++++++++++------------------------
+ 1 file changed, 12 insertions(+), 24 deletions(-)
+
+diff --git a/src/jvm/clojure/lang/Compiler.java b/src/jvm/clojure/lang/Compiler.java
+index 95cf816..843c74e 100644
+--- a/src/jvm/clojure/lang/Compiler.java
++++ b/src/jvm/clojure/lang/Compiler.java
+@@ -3485,32 +3485,20 @@ static class InvokeExpr implements Expr{
+ 
+ 	public void emitProto(C context, ObjExpr objx, GeneratorAdapter gen){
+ 		Label onLabel = gen.newLabel();
+-		Label callLabel = gen.newLabel();
+ 		Label endLabel = gen.newLabel();
+ 
+ 		Var v = ((VarExpr)fexpr).var;
+ 
+ 		Expr e = (Expr) args.nth(0);
+ 		e.emit(C.EXPRESSION, objx, gen);
+-		gen.dup(); //target, target
+-		gen.invokeStatic(UTIL_TYPE,Method.getMethod("Class classOf(Object)")); //target,class
+-		gen.loadThis();
+-		gen.getField(objx.objtype, objx.cachedClassName(siteIndex),CLASS_TYPE); //target,class,cached-class
+-		gen.visitJumpInsn(IF_ACMPEQ, callLabel); //target
+-		if(protocolOn != null)
++
++    if(protocolOn != null)
+ 			{
+ 			gen.dup(); //target, target			
+ 			gen.instanceOf(Type.getType(protocolOn));
+ 			gen.ifZCmp(GeneratorAdapter.NE, onLabel);
+ 			}
+ 
+-		gen.dup(); //target, target
+-		gen.invokeStatic(UTIL_TYPE,Method.getMethod("Class classOf(Object)")); //target,class
+-		gen.loadThis();
+-		gen.swap();
+-		gen.putField(objx.objtype, objx.cachedClassName(siteIndex),CLASS_TYPE); //target
+-
+-		gen.mark(callLabel); //target
+ 		objx.emitVar(gen, v);
+ 		gen.invokeVirtual(VAR_TYPE, Method.getMethod("Object getRawRoot()")); //target, proto-fn
+ 		gen.swap();
+@@ -4141,18 +4129,18 @@ static public class ObjExpr implements Expr{
+ 					cv.visitField(0 //+ (oneTimeUse ? 0 : ACC_FINAL)
+ 							, lb.name, OBJECT_TYPE.getDescriptor(), null, null);
+ 				}
+-			}
++                        }
+ 
+-		//instance fields for callsites and thunks
+-		for(int i=0;i<protocolCallsites.count();i++)
+-			{
+-			cv.visitField(ACC_PRIVATE, cachedClassName(i), CLASS_TYPE.getDescriptor(), null, null);
+-			cv.visitField(ACC_PRIVATE, cachedProtoFnName(i), AFUNCTION_TYPE.getDescriptor(), null, null);
+-			cv.visitField(ACC_PRIVATE, cachedProtoImplName(i), IFN_TYPE.getDescriptor(), null, null);			
+-			}
++                //instance fields for callsites and thunks
++//		for(int i=0;i<protocolCallsites.count();i++)
++//			{
++//			cv.visitField(ACC_PRIVATE, cachedClassName(i), CLASS_TYPE.getDescriptor(), null, null);
++//			cv.visitField(ACC_PRIVATE, cachedProtoFnName(i), AFUNCTION_TYPE.getDescriptor(), null, null);
++//			cv.visitField(ACC_PRIVATE, cachedProtoImplName(i), IFN_TYPE.getDescriptor(), null, null);
++//			}
+ 
+- 		//ctor that takes closed-overs and inits base + fields
+-		Method m = new Method("<init>", Type.VOID_TYPE, ctorTypes());
++		//ctor that takes closed-overs and inits base + fields
++                Method m = new Method("<init>", Type.VOID_TYPE, ctorTypes());
+ 		GeneratorAdapter ctorgen = new GeneratorAdapter(ACC_PUBLIC,
+ 		                                                m,
+ 		                                                null,
+-- 
+1.8.2.3
+
